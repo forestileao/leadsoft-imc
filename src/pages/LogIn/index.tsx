@@ -1,4 +1,4 @@
-import React, {useRef, useCallback, useState} from 'react';
+import React, {useRef, useCallback} from 'react';
 import {Form} from '@unform/web';
 import {FormHandles} from '@unform/core';
 import {FiLock, FiMail} from 'react-icons/fi';
@@ -10,6 +10,8 @@ import Button from '../../components/Button';
 import logoImg from '../../assets/logo.png';
 
 import getValidationErrors from '../../utils/getValidationErrors';
+import {useAuth} from '../../hooks/auth';
+import {useToast} from '../../hooks/toast';
 
 interface LogInFormData {
   email: string;
@@ -18,30 +20,46 @@ interface LogInFormData {
 
 const LogIn: React.FC = () => {
   const formRef = useRef<FormHandles>(null);
+  const {logIn} = useAuth();
+  const {addToast} = useToast();
 
-  const handleSubmit = useCallback(async (data: LogInFormData) => {
-    formRef.current?.setErrors({});
-    try {
-      const schema = Yup.object().shape({
-        email: Yup.string()
-          .required('E-mail obrigatório')
-          .email('Digite um E-mail válido'),
-        password: Yup.string().required('Senha obrigatória'),
-      });
+  const handleSubmit = useCallback(
+    async (data: LogInFormData) => {
+      try {
+        formRef.current?.setErrors({});
 
-      await schema.validate(data, {
-        abortEarly: false,
-      });
+        const schema = Yup.object().shape({
+          email: Yup.string()
+            .required('E-mail obrigatório')
+            .email('Digite um E-mail válido'),
+          password: Yup.string().required('Senha obrigatória'),
+        });
 
-      /*signIn({
-        email: data.email,
-        password: data.password,
-      });*/
-    } catch (err) {
-      const errors = getValidationErrors(err);
-      formRef.current?.setErrors(errors);
-    }
-  }, []);
+        await schema.validate(data, {
+          abortEarly: false,
+        });
+
+        await logIn({
+          username: data.email,
+          password: data.password,
+        });
+      } catch (err) {
+        if (err instanceof Yup.ValidationError) {
+          const errors = getValidationErrors(err);
+          formRef.current?.setErrors(errors);
+
+          return;
+        }
+
+        addToast({
+          title: 'Erro na autenticação',
+          description: 'Usuário ou senha inválidos',
+          type: 'error',
+        });
+      }
+    },
+    [logIn, addToast]
+  );
 
   return (
     <Container>

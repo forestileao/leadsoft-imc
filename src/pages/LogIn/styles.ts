@@ -11,6 +11,8 @@ export const Content = styled.div`
   background: #fff;
   padding: 20px;
   border-radius: 20px;
+  width: 340px;
+
   h1 {
     text-align: center;
     color: #666360;
